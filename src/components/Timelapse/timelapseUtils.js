@@ -2,24 +2,28 @@ import axios from 'axios';
 import { cacheAdapterEnhancer } from 'axios-extensions';
 import moment from 'moment';
 import Store from '../../store';
+import { evalscriptoverridesToString } from '../../utils/utils';
 import { calcBboxFromXY, bboxToPolygon, getRecommendedResolution, getMapDOMSize } from '../../utils/coords';
-import { fetchAvailableDates, ISO_8601_UTC } from '../../utils/datesHelper';
+import { distance } from '../../utils/distance';
+import { scalebarPixelWidthAndDistance } from './scalebarUtils';
+import { fetchAvailableDates } from '../../utils/datesHelper';
 import copernicus from '../../assets/copernicus.png';
 import SHlogo from '../../assets/shLogo.png';
 
-const http = axios.create({
-  timeout: 30000,
+const cachingAxios = axios.create({
   responseType: 'blob',
   adapter: cacheAdapterEnhancer(axios.defaults.adapter, true),
 });
 
 const PADDING = 80;
+const REQUEST_RETRY_LIMIT = 2;
+let imageWidthMeters;
 
-export async function fetchDates({ from, to }, maxCount) {
+export function createTimelapseBbox() {
   const { lat, lng, zoom } = Store.current;
   const size = getMapDOMSize();
   const widthOrHeight = Math.min(size.width, size.height);
-  const bbox = calcBboxFromXY({
+  return calcBboxFromXY({
     lat,
     lng,
     zoom,
@@ -27,10 +31,14 @@ export async function fetchDates({ from, to }, maxCount) {
     height: widthOrHeight,
     wgs84: true,
   });
+}
 
+export async function fetchDates({ from, to }, maxCount) {
+  const bbox = createTimelapseBbox();
   const boundsGeojson = bboxToPolygon(bbox);
-  let fromDate = moment(from).format(ISO_8601_UTC);
-  let toDate = moment(to).format(ISO_8601_UTC);
+  imageWidthMeters = distance(boundsGeojson.coordinates[0][3], boundsGeojson.coordinates[0][4]);
+  let fromDate = moment(from).startOf('day');
+  let toDate = moment(to).endOf('day');
 
   return fetchAvailableDates(fromDate, toDate, null, boundsGeojson).then(res => res);
 }
@@ -43,7 +51,7 @@ const getCloudCoverageLayer = (instanceName, originalLayerId) => {
   return cloudCoverageLayers[instanceName];
 };
 
-export async function getCC({ from, to }) {
+export async function getCC({ from, to }, cancelToken) {
   const { lat, lng, zoom, selectedResult, presets } = Store.current;
   const url = selectedResult.baseUrls.FIS;
   let layerInfo;
@@ -75,11 +83,15 @@ export async function getCC({ from, to }) {
     layerInfo.id
   }&CRS=CRS:84&TIME=${from}/${to}&RESOLUTION=${resolution}m&BBOX=${bbox}&MAXCC=100`;
   try {
-    const { data } = await axios.get(requestUrl);
+    const { data } = await axios.get(requestUrl, { cancelToken });
     return data['C0'].reverse();
-  } catch (e) {
-    console.error(e);
-    throw e;
+  } catch (err) {
+    if (axios.isCancel(err)) {
+      console.log('Request canceled', err.message);
+    } else {
+      console.error(err);
+      throw err;
+    }
   }
 }
 
@@ -93,19 +105,44 @@ export function getCurrentBboxUrl() {
     lng,
     zoom,
     isEvalUrl,
-    selectedResult: { name, preset, layers, evalscript, evalscripturl, gain, gamma, atmFilter },
+    selectedResult: {
+      name,
+      preset,
+      evalscript,
+      evalscripturl,
+      gainOverride,
+      gammaOverride,
+      redRangeOverride,
+      greenRangeOverride,
+      blueRangeOverride,
+      valueRangeOverride,
+      atmFilter,
+      evalsource,
+    },
   } = Store.current;
 
+  const datasetLayers = Store.current.presets[name];
   const size = getMapDOMSize();
   const widthOrHeight = Math.min(size.width, size.height) + PADDING;
   const { baseUrls } = getActiveInstance(name);
+  const evalscriptoverridesObj = {
+    gainOverride,
+    gammaOverride,
+    redRangeOverride,
+    greenRangeOverride,
+    blueRangeOverride,
+    valueRangeOverride,
+  };
+
   return `${baseUrls.WMS}?SERVICE=WMS&REQUEST=GetMap&width=512&height=512&layers=${
-    preset === 'CUSTOM' ? layers.r : preset
+    preset === 'CUSTOM' ? datasetLayers[0].id : preset
   }&evalscript=${
     preset !== 'CUSTOM' ? '' : isEvalUrl ? '' : window.encodeURIComponent(evalscript)
-  }&evalscripturl=${isEvalUrl ? evalscripturl : ''}&gain=${gain ? gain : ''}&gamma=${
-    gamma ? gamma : ''
-  }&atmfilter=${atmFilter ? atmFilter : ''}&bbox=${calcBboxFromXY({
+  }&evalscripturl=${isEvalUrl ? evalscripturl : ''}&evalscriptoverrides=${btoa(
+    evalscriptoverridesToString(evalscriptoverridesObj),
+  )}
+  &evalsource=${evalsource}
+  &atmfilter=${atmFilter ? atmFilter : ''}&bbox=${calcBboxFromXY({
     lat,
     lng,
     zoom,
@@ -114,17 +151,28 @@ export function getCurrentBboxUrl() {
   })}&CRS=EPSG%3A3857&MAXCC=100&FORMAT=image/jpeg`;
 }
 
-export function fetchBlobObj(obj) {
-  return http.get(obj.url, { date: obj.date }).then(res => {
-    if (res.status === 200) {
-      return decorateBlob(res.config.date, res.data);
+export async function fetchBlobObj(request, cancelToken) {
+  try {
+    const response = await cachingAxios.get(request.url, { date: request.date, cancelToken });
+    return decorateBlob(response.config.date, response.data);
+  } catch (err) {
+    if (axios.isCancel(err)) {
+      throw err;
+    } else {
+      if (request.try < REQUEST_RETRY_LIMIT) {
+        request.try++;
+        fetchBlobObj(request);
+        throw err;
+      }
     }
-  });
+  }
 }
+
 function decorateBlob(date, blob) {
   const canvas = document.createElement('canvas');
   const height = 512;
   const width = 512;
+  const { widthPx, label } = scalebarPixelWidthAndDistance(imageWidthMeters / width);
   return new Promise((resolve, reject) => {
     const mainImg = new Image();
     const sh = new Image();
@@ -167,10 +215,8 @@ function decorateBlob(date, blob) {
         ctx.moveTo(10, canvas.height - 25);
         ctx.lineTo(10, canvas.height - 15);
         ctx.font = '11px Arial';
-        const scaleBar = document.querySelector('.leaflet-control-scale-line');
-        const scale = scaleBar.offsetWidth; //* width / window.innerWidth;
-        ctx.lineTo(scale + 10, canvas.height - 15);
-        ctx.lineTo(scale + 10, canvas.height - 25);
+        ctx.lineTo(widthPx + 10, canvas.height - 15);
+        ctx.lineTo(widthPx + 10, canvas.height - 25);
         ctx.stroke();
         ctx.textAlign = 'center';
         ctx.shadowColor = 'black';
@@ -178,8 +224,8 @@ function decorateBlob(date, blob) {
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
         ctx.strokeStyle = '#767777';
-        ctx.strokeText(scaleBar.innerHTML, scale / 2 + 10, canvas.height - 20);
-        ctx.fillText(scaleBar.innerHTML, scale / 2 + 10, canvas.height - 20);
+        ctx.strokeText(label, widthPx / 2 + 10, canvas.height - 20);
+        ctx.fillText(label, widthPx / 2 + 10, canvas.height - 20);
 
         //sentinel hub logo
         ctx.shadowColor = 'black';

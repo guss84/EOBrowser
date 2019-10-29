@@ -3,10 +3,17 @@ import RCSlider from 'rc-slider';
 import Rodal from 'rodal';
 import Button from './Button';
 import { calcBboxFromXY } from '../utils/coords';
-import { evalSourcesMap, getMultipliedLayers } from '../utils/utils';
+import { getMultipliedLayers } from '../utils/utils';
+import { evalSourcesMap } from '../store/config';
 import Store from '../store';
+import EditableString from './EditableString';
+
+const Range = RCSlider.Range;
 
 class Pin extends React.Component {
+  static defaultProps = {
+    readOnly: false,
+  };
   constructor(props) {
     super(props);
     this.state = {
@@ -64,6 +71,7 @@ class Pin extends React.Component {
         width={400}
         height={150}
         onClose={() => this.closeDialog(modalDialogId)}
+        closeOnEsc={true}
       >
         <h3>Delete pin</h3>
         <b>WARNING:</b> You're about to delete a pin. Do you wish to continue? <br />
@@ -93,10 +101,14 @@ class Pin extends React.Component {
     e.stopPropagation();
     this.props.onZoomToPin({ lat, lng, zoom });
   };
-  onPinClick = (isCompare, item, index) => {
-    if (!isCompare) {
-      this.props.onPinClick(item, index, false);
+  handlePinClick = () => {
+    if (!this.props.isCompare) {
+      this.props.onPinClick(this.props.item);
     }
+  };
+
+  saveNewPinTitle = title => {
+    Store.setPinProperty(this.props.index, 'pinTitle', title);
   };
 
   constructImgSrc = item => {
@@ -116,7 +128,7 @@ class Pin extends React.Component {
 
   render() {
     let {
-      item: { time, lat, datasource, preset, layers, evalscript },
+      item: { time, lat, datasource, preset, layers, evalscript, pinTitle },
       item,
       isCompare,
       index,
@@ -126,9 +138,16 @@ class Pin extends React.Component {
     const isCustom = preset === 'CUSTOM';
     const advancedScript =
       evalscript && evalscript !== '' ? 'Custom script' : layers ? getMultipliedLayers(layers) : '';
+
+    const pinTitleText = pinTitle ? pinTitle : `${datasource}: ${isCustom ? advancedScript : preset}`;
+
     return (
       <div className={isCompare ? 'pinItem compareCursor' : 'pinItem'} data-id={item._id}>
-        <div onClick={() => this.onPinClick(isCompare, item, index, false)}>
+        <div onClick={this.handlePinClick}>
+          <div className="pin-dragHandler">
+            <i className="fa fa-ellipsis-v" />
+            <i className="fa fa-ellipsis-v" />
+          </div>
           {lat && (
             <img
               alt="saved pin"
@@ -139,24 +158,23 @@ class Pin extends React.Component {
               }
             />
           )}
+          {!this.props.readOnly &&
+            !isCompare && (
+              <a className="removePin" onClick={e => this.onTrashClick(e, index)} title="Remove pin">
+                <i className="fa fa-trash" />
+              </a>
+            )}
           {!isCompare && (
-            <a className="removePin" onClick={e => this.onTrashClick(e, index)} title="Remove pin">
-              <i className="fa fa-trash" />
-            </a>
-          )}
-          {!isCompare && (
-            <a
-              className="zoomToPin"
-              onClick={e => this.onZoomToPin(e, item, index)}
-              title="Zoom to pinned location"
-            >
-              <i className="fa fa-search" />
+            <a className="zoomToPin" onClick={e => this.onZoomToPin(e, item)} title="Zoom to pinned location">
+              <i className="fa fa-crosshairs" />
               {'\u00A0'}
             </a>
           )}
-          <span>
-            {datasource}: {isCustom ? advancedScript : preset}
-          </span>{' '}
+          {this.props.readOnly ? (
+            <span>{pinTitleText}</span>
+          ) : (
+            <EditableString text={pinTitleText} onEditSave={this.saveNewPinTitle} />
+          )}
           <br />
           Date: <span className="pinDate">{time}</span>
           <br />
@@ -165,14 +183,7 @@ class Pin extends React.Component {
         {isCompare && (
           <div className={'comparePanel ' + (isOpacity && 'opacity')}>
             <label>{isOpacity ? 'Opacity' : 'Split position'}:</label>
-            <RCSlider
-              min={0}
-              max={1}
-              step={0.01}
-              range={true}
-              value={this.state.range}
-              onChange={this.onChange}
-            />
+            <Range min={0} max={1} step={0.01} value={this.state.range} onChange={this.onChange} />
             <span>{this.state.opacity}</span>
           </div>
         )}

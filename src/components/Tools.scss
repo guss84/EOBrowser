@@ -1,16 +1,15 @@
 @import '../variables';
 
 #tools {
+  width: 450px;
+  max-width: 94vw;
   background: $mainLight;
   z-index: 1;
   color: $textColor;
-  transition: all ease $toolsTransitionSpeed;
-  display: flex;
-  flex-direction: column;
-
-  div.react-tabs.ReactTabs {
-    flex-grow: 1;
-  }
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  box-shadow: 0 2px 5px #000;
 
   footer {
     text-align: center;
@@ -58,6 +57,7 @@
     color: #ddd;
     font-size: 13px;
     padding-left: 65px;
+    padding-right: 20px;
     padding-top: 10px;
     min-height: 46px;
     border-bottom: 1px solid #555;
@@ -86,20 +86,37 @@
     }
     &.active:hover,
     &.active {
-      color: #B6BF00;
+      color: #b6bf00;
       opacity: 1;
-      border-right: solid 4px #B6BF00;
+      border-right: solid 4px #b6bf00;
 
       .icon {
-        border: 3px solid #B6BF00;
+        border: 3px solid #b6bf00;
       }
       small {
-        color: #B6BF00;
+        color: #b6bf00;
+      }
+      .fa.fa-angle-double-down {
+        margin-right: -22px;
+        transition: transform ease-in 0.2s;
+
+        &.show {
+          color: #b6bf00;
+          transform: rotate(180deg);
+        }
       }
     }
     small {
       color: #ccc;
       display: block;
+    }
+    .fa.fa-angle-double-down {
+      float: right;
+      font-size: 20px;
+      margin-right: -18px;
+      margin-top: 19px;
+      padding: 5px 10px 5px;
+      top: 0;
     }
   }
 
@@ -122,9 +139,14 @@
 .comparisonHeader {
   border-bottom: 2px solid $primaryCol;
   padding: 5px;
+  padding-right: 10px;
 
   a i {
     margin-right: 5px;
+  }
+
+  a.disabled {
+    opacity: 0.5;
   }
 }
 
@@ -147,8 +169,33 @@
     margin-right: 8px;
     margin-bottom: 8px;
     border: 2px solid #555;
+    width: 50px;
   }
 
+  .editTitle {
+    margin-left: 4px;
+    a {
+      padding: 2px 2px 2px 4px;
+      .fa-pencil {
+        font-size: 12px;
+        display: inline-block;
+        vertical-align: text-top;
+        margin-top: 1px;
+      }
+      .fa-check {
+        color: #00bb00;
+      }
+      .fa-close {
+        color: #aa0000;
+      }
+    }
+  }
+  input {
+    width: 250px;
+    border: none;
+    padding: 2px 5px;
+    margin-bottom: 2px;
+  }
   .removePin,
   .zoomToPin {
     float: right;
@@ -195,44 +242,6 @@
 }
 .leaflet-pane {
   z-index: auto;
-}
-.ReactTabs__TabList {
-  margin: -38px 0 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    float: left;
-    list-style: none;
-    cursor: pointer;
-    color: #aaa;
-    padding: 6px 12px;
-    border-bottom: 4px solid transparent;
-
-    img,
-    i {
-      font-size: 17px;
-      fill: #aaa;
-      width: 17px;
-      height: 17px;
-      margin: 0 6px 5px 0;
-    }
-
-    &.ReactTabs__Tab--selected {
-      color: #fff;
-      border-color: $primaryCol;
-    }
-  }
-  &:after {
-    content: '';
-    display: block;
-    clear: both;
-  }
-}
-.tab-panel,
-.ReactTabs__TabPanel {
-  min-height: 450px;
-  overflow: auto;
 }
 
 .sectionHeader {
@@ -291,6 +300,7 @@
   color: #fff;
   border-bottom: 1px solid $primaryCol;
   padding-bottom: 10px;
+  text-transform: uppercase;
 
   .timelapsePreviewBox {
     position: fixed;
@@ -430,13 +440,16 @@ div.rc-slider {
 .react-toggle--checked .react-toggle-thumb {
   border-color: $primaryCol;
 }
-
-#searchBox {
-  display: inline-block;
-  margin-right: $basicMargin;
-  /*left: auto;*/
-  /*right: 80px;*/
+.react-toggle:active:not(.react-toggle--disabled) .react-toggle-thumb {
+  box-shadow: 0px 0px 2px 2px #fff;
 }
+.react-toggle:hover:not(.react-toggle--disabled) .react-toggle-track {
+  background-color: #4d4d4d;
+}
+.react-toggle.react-toggle--checked:hover .react-toggle-track {
+  background-color: $primaryCol;
+}
+
 .toggleSettings {
   display: block;
   position: absolute;
@@ -481,13 +494,13 @@ div.rc-slider {
     & > i {
       cursor: pointer;
     }
-    & > span {
+    & > span.hideable {
       width: 0;
       height: 0;
       display: block;
       overflow: hidden;
     }
-    &.active > span {
+    &.active > span.hideable {
       width: auto;
       height: auto;
       overflow: visible;
@@ -503,10 +516,6 @@ div.rc-slider {
       box-shadow: 0 2px 10px #000;
     }
   }
-  #searchBox {
-    left: auto;
-    z-index: 2;
-  }
 }
 @media screen and (min-width: 700px) {
   #cloudSliderVal {
@@ -514,5 +523,14 @@ div.rc-slider {
     vertical-align: middle;
     padding: 5px;
     width: 60px;
+  }
+}
+
+.pin-dragHandler {
+  float: left;
+  padding-right: 4px;
+  cursor: move;
+  i {
+    padding: 0.05em;
   }
 }

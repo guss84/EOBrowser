@@ -1,0 +1,69 @@
+.shareIcon {
+  display: inline-block;
+  margin-left: 5px;
+  cursor: pointer;
+  color: #b6bf00;
+}
+
+.social-networks {
+  z-index: 5;
+  background-color: #474954;
+  box-shadow: 0 2px 5px #000;
+  position: absolute;
+  width: 80px;
+  height: 40px;
+  color: #fff;
+}
+.show {
+  display: block;
+}
+.social-networks ul {
+  margin: auto;
+  padding: 0;
+  list-style: none;
+}
+
+.social-networks.open-menu,
+.social-networks ul:after {
+  margin: 35px auto;
+  border-top: 12px solid #495163;
+}
+.social-networks li {
+  font-size: 90%;
+  width: 40px;
+  margin: 0;
+  text-align: center;
+  float: left;
+  display: block;
+  height: 40px;
+  line-height: 40px;
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  border: solid 1px #616161;
+}
+
+.share-button a {
+  text-decoration: none;
+}
+
+.social-networks a {
+  display: block;
+  color: white;
+  margin-left: 0px !important;
+}
+
+.social-networks a:hover {
+  color: #222;
+}
+.social-twitter i {
+  color: white;
+}
+.social-facebook i {
+  color: white;
+}
+
+.imageWithLoader {
+  display: block;
+  text-align: center;
+}

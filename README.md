@@ -1,7 +1,6 @@
 ## About
 
-The [Earth Observation Browser](https://apps.sentinel-hub.com/eo-browser/) is a search tool for Sentinel-1, -2, -3, -5P, Landsat 5, 7, 8, MODIS and Envisat Meris satellite imagery. It was released as open-source to bring earth observation imagery closer to its end users.
-
+The Earth Observation Browser is a search tool for Sentinel-2 and Landsat 5,7,8 satellite imagery. It was released as open-source to bring earth observation imagery closer to its end users.
 Some features:
 
 * Search by date, location, source, and cloud coverage
@@ -12,7 +11,22 @@ Some features:
 
 ## Usage
 
-* Run `npm install`
+* Run `npm install` or `yarn`
 * Run `npm start`
+* Use Sentinel username and password (if you don't have any, contact [Sentinel Hub](www.sentinel-hub.com))
 
-IMPORTANT: By default, application will start at `http://localhost:3000/`. It is important to keep this address, otherwise login to [Sentinel Hub](https://sentinel-hub.com) will not work because of OAuth security considerations.
+## BUILDING
+
+* yarn build:production
+* yarn build:staging
+
+## Deploying
+
+* If you want to deploy to IPT, be sure to comment line in `.env` with # in front of `REACT_APP_TARGET` so that it doesn't targets AWS instances and logic. `homepage` is `http://apps.eocloud.sentinel-hub.com/eo-browser/`
+* If you want to deploy to Sentinel App (Sentinel 2 is served from AWS), `.env` needs to have line `REACT_APP_TARGET=aws` uncommented. `homepage` is `http://apps.sentinel-hub.com/eo-browser/`
+* If you want to deploy to AWS Image bucket (Sentinel 2 is served from AWS), `.env` needs to have line `REACT_APP_IMAGE_BUCKET=true` uncommented. `homepage` is `http://sentinel-pds.s3-website.eu-central-1.amazonaws.com/browser/`
+* If you want to deploy to Sentinel Hub Image browser, `.env` needs to have line `REACT_APP_IMAGE_BUCKET=true` uncommented and switch `$primaryCol` in variables. `homepage` is `http://apps.sentinel-hub.com/image-browser/`
+* Then you need to modify `homepage` in ``package.json` to point to your deploy host URL.
+* The run `npm run build` and put whole folder to desired server.
+
+Server credentials can be found on [Sinergise Wiki page](https://wiki.sinergise.com/Maintenance/SentinelApps)

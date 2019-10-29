@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import Store from '../../store';
 import moment from 'moment';
+import { CancelToken, isCancel } from 'axios';
 import 'react-toggle/style.css';
 import RCSlider from 'rc-slider';
 import CCSlider from '../CCSlider';
@@ -41,6 +42,7 @@ export default class Timelapse extends Component {
 
   layerName = Store.current.selectedResult.name;
   canWeFilterByClouds = Store.current.cloudCoverageLayers[this.layerName] !== undefined;
+  cancelTokenSource = CancelToken.source();
 
   alertOptions = {
     offset: 14,
@@ -55,6 +57,10 @@ export default class Timelapse extends Component {
 
   componentWillMount() {
     this.timer && this.clearInterval(this.timer);
+  }
+
+  componentWillUnmount() {
+    this.cancelTokenSource.cancel('Operation cancelled by user.');
   }
 
   componentDidUpdate(prevProps, oldState) {
@@ -89,6 +95,13 @@ export default class Timelapse extends Component {
       const datesForGif = this.datesForGif(this.state.selectedDates, this.state.tooCloudy);
       const currDate = datesForGif[this.state.sliderValue];
       this.scrollToImage(currDate);
+    }
+    if (
+      this.state.allDates !== oldState.allDates ||
+      this.state.ccWithDates !== oldState.ccWithDates ||
+      this.state.maxCCAllowed !== oldState.maxCCAllowed
+    ) {
+      this.updateFilterAndCheckedState();
     }
   }
   datesForGif = (selectedDates, tooCloudy) => {
@@ -129,22 +142,16 @@ export default class Timelapse extends Component {
       this.setState({
         loadingCloudCoverage: true,
       });
-      getCC(this.state.dateRange)
+      getCC(this.state.dateRange, this.cancelTokenSource.token)
         .then(data => {
-          this.setState(
-            {
-              ccWithDates: data,
-            },
-            this.updateFilterAndCheckedState(),
-          );
+          this.setState({
+            ccWithDates: data,
+            loadingCloudCoverage: false,
+          });
         })
         .catch(err => {
           this.setState({
             error: 'Error fetching cloudcoverage ',
-          });
-        })
-        .then(() => {
-          this.setState({
             loadingCloudCoverage: false,
           });
         });
@@ -166,10 +173,11 @@ export default class Timelapse extends Component {
       return {
         url: `${getCurrentBboxUrl()}&SHOWLOGO=FALSE&time=${date}/${date}`,
         date: date,
+        try: 0,
       };
     });
     const allImagesPromises = imgUrlArr.map(imgUrl => {
-      return fetchBlobObj(imgUrl)
+      return fetchBlobObj(imgUrl, this.cancelTokenSource.token)
         .then(response => {
           const dateToBeAdded = response.date;
           this.fetchedImages[dateToBeAdded] = response;
@@ -179,7 +187,7 @@ export default class Timelapse extends Component {
             const selectedDates = [...oldState.selectedDates, dateToBeAdded].sort(
               (a, b) => new Date(a) - new Date(b),
             );
-            this.updateFilterAndCheckedState();
+
             return {
               allDates,
               selectedDates,
@@ -187,6 +195,9 @@ export default class Timelapse extends Component {
           });
         })
         .catch(err => {
+          if (isCancel(err)) {
+            return;
+          }
           console.log(err);
         });
     });
@@ -317,12 +328,9 @@ export default class Timelapse extends Component {
   };
 
   setMaxCCAlowed = valuePercent => {
-    this.setState(
-      {
-        maxCCAllowed: valuePercent / 100.0,
-      },
-      this.updateFilterAndCheckedState(),
-    );
+    this.setState({
+      maxCCAllowed: valuePercent / 100.0,
+    });
   };
 
   scrollToImage = currentDate => {
@@ -378,22 +386,33 @@ export default class Timelapse extends Component {
       loadingCloudCoverage,
       allImagesLoading,
     } = this.state;
-
+    const { selectedResult } = Store.current;
     const datesForGif = selectedDates.filter(date => !tooCloudy.includes(date));
     const isSelectAllChecked = datesForGif.length === allDates.length - tooCloudy.length;
-
+    const minDate = selectedResult.minDate ? new Date(selectedResult.minDate) : undefined;
+    const maxDate = selectedResult.maxDate ? new Date(selectedResult.maxDate) : undefined;
     return (
       <div>
         <AlertContainer ref={a => (this.alertContainer = a)} {...this.alertOptions} />
-        <div className="wrapHolder">
+        <div className="modalTimelapse">
           <h1>Timelapse</h1>
           <div className="wrap">
             <div className="side">
               <div className="head">
                 <div className="date-range">
-                  <DayPicker onSelect={e => this.updateDate('from', e)} selectedDay={from} />
+                  <DayPicker
+                    onSelect={e => this.updateDate('from', e)}
+                    selectedDay={moment(from)}
+                    minDate={minDate}
+                    maxDate={maxDate}
+                  />
                   <span className="datePickerSeparator">-</span>
-                  <DayPicker onSelect={e => this.updateDate('to', e)} selectedDay={to} />
+                  <DayPicker
+                    onSelect={e => this.updateDate('to', e)}
+                    selectedDay={moment(to)}
+                    minDate={minDate}
+                    maxDate={maxDate}
+                  />
                 </div>
 
                 {!allImagesLoading ? (
@@ -520,7 +539,7 @@ const Preview = ({
     ) : noData ? (
       <p>No images selected</p>
     ) : currDate ? (
-      <div>
+      <div className="wrapper">
         <img src={getDataUrlFromDate(currDate)} alt="" />
       </div>
     ) : null}

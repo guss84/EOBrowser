@@ -85,7 +85,7 @@ class CodeMirror extends React.Component {
             <i className="fa fa-warning" /> {error}
           </div>
         )}
-        <div style={{ padding: 5, fontSize: 12 }}>
+        <div style={{ padding: '5px 0px 5px 0px', fontSize: 12, marginTop: '5px' }}>
           <div title="Insert URL to your custom script">
             Script URL [?]:
             <span style={{ float: 'right', marginTop: '-3px' }}>
@@ -104,7 +104,7 @@ class CodeMirror extends React.Component {
             placeholder="Enter URL to your script"
             onKeyDown={this.onKeyDown}
             disabled={!isEvalUrl}
-            style={{ width: 'calc(100% - 40px)' }}
+            style={{ width: 'calc(100% - 40px)', marginTop: '5px' }}
             value={evalscripturl}
             onChange={this.updateUrl}
           />
@@ -114,10 +114,12 @@ class CodeMirror extends React.Component {
               className={`fa fa-${success ? 'check' : 'warning'}`}
               style={{ marginLeft: 7 }}
             />
-          ) : (
+          ) : evalscripturl ? (
             <a onClick={this.loadCode}>
               <i className={`fa fa-refresh ${loading && 'fa-spin'}`} style={{ marginLeft: 7 }} />
             </a>
+          ) : (
+            <i className={`fa fa-refresh`} style={{ marginLeft: 7 }} />
           )}
         </div>
         <div className="scriptBtnPanel">

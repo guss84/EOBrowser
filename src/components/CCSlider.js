@@ -31,7 +31,7 @@ const CCSliderStyled = styled.div`
 `;
 
 export default class CCSlider extends React.Component {
-  defaultProps = {
+  static defaultProps = {
     sliderWidth: 50,
     cloudCoverPercentage: 100,
     onChange: value => {},

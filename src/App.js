@@ -1,21 +1,21 @@
 import React, { Component } from 'react';
-import Sidebar from 'react-sidebar';
 import { connect } from 'react-redux';
 import AlertContainer from 'react-alert';
 import Rodal from 'rodal';
+import { LocationSearchBox } from 'eo-components';
 import 'rodal/lib/rodal.css';
-
 import RootMap from './components/RootMap';
 import Tools from './components/Tools';
-import SearchBox from './components/SearchBox';
-import { loadGetCapabilities, reflect, loginAndLoadInstances } from './utils/ajax';
-import { getPolyfill } from './utils/utils';
-import NotificationPanel from './components/NotificationPanel';
-import DummyIcon from './components/DummyIcon';
+import { loadGetCapabilitiesAndSaveLayers, reflect, loadInstances } from './utils/ajax';
+import { checkAuthState } from './utils/auth';
+import { getPolyfill } from './utils/polyfills';
+import { fetchThemes } from './utils/ajax';
+
+import { NotificationPanel } from 'eo-components';
 import Store from './store';
+import DEFAULT_THEMES from './default_themes.json';
 
 import './App.scss';
-
 class App extends Component {
   alertOptions = {
     offset: 14,
@@ -33,34 +33,59 @@ class App extends Component {
       newLocation: false,
       isCompare: false,
       user: {},
+      themes: null,
     };
     getPolyfill();
-  }
-
-  componentWillMount() {
-    this.fetchLayers();
+    checkAuthState();
   }
 
   componentDidMount() {
+    this.initAppStateFromParams();
+    this.fetchLayers();
     this.updateMapViewFromURL();
   }
 
-  showAlert = () => {
-    this.msg.show('Some text or component', {
-      time: 2000,
-      type: 'success',
-      icon: <img src="path/to/some/img/32x32.png" alt="" />,
-    });
+  initAppStateFromParams = () => {
+    const { datasource, themesUrl } = this.getUrlParams();
+
+    if (datasource) {
+      const instance = Store.current.instances.find(inst => inst.name === datasource);
+      loadGetCapabilitiesAndSaveLayers(instance).then(() => {
+        this.handleNewHash();
+      });
+    }
+
+    if (themesUrl) {
+      fetchThemes(themesUrl)
+        .then(res => {
+          this.setState({
+            themes: res.data,
+          });
+          Store.setThemesUrl(themesUrl);
+        })
+        .catch(e => {
+          console.error(e);
+          this.setState({
+            themes: DEFAULT_THEMES,
+          });
+          App.displayErrorMessage(
+            'Error loading specified theme, see console for more info (common causes: ad blockers, network errors). Using default themes instead.',
+          );
+        });
+    } else {
+      this.setState({
+        themes: DEFAULT_THEMES,
+      });
+    }
   };
 
   fetchLayers() {
     let promises = [];
     Store.current.instances.forEach(instance => {
-      promises.push(loadGetCapabilities(instance));
+      promises.push(loadGetCapabilitiesAndSaveLayers(instance));
     });
     Promise.all(promises.map(reflect))
       .then(obj => {
-        this.handleNewHash();
         const okInstances = obj.filter(x => x.success);
         const insts = Store.current.instances.filter(inst =>
           okInstances.find(inst2 => inst2.name === inst.data),
@@ -87,6 +112,7 @@ class App extends Component {
         width={500}
         height={100}
         onClose={() => Store.removeModalDialog(modalDialogId)}
+        closeOnEsc={true}
       >
         <NotificationPanel msg={errMsg} type="error" />
       </Rodal>,
@@ -94,7 +120,7 @@ class App extends Component {
   }
 
   setMapLocation = data => {
-    const { lat, lng } = data.location;
+    const [lng, lat] = data.location;
     Store.setMapView({ lat, lng, update: true });
   };
 
@@ -120,11 +146,15 @@ class App extends Component {
   };
 
   getUrlParams() {
-    let path = window.location.hash.replace(/^#\/?|\/$/g, '');
-    let params = path.split('&');
+    const hasSearch = window.location.href.includes('?');
+    const path = hasSearch
+      ? window.location.search.replace(/^[?]/, '')
+      : window.location.hash.replace(/^[#]/, '');
+
+    const params = path.split('&');
     const paramMap = {};
     params.forEach(kv => {
-      let [key, value] = kv.split('=');
+      const [key, value] = kv.split('=');
       return (paramMap[key] = window.decodeURIComponent(value));
     });
     return paramMap;
@@ -138,8 +168,12 @@ class App extends Component {
       time,
       evalscript = '',
       evalscripturl = '',
-      gain,
-      gamma,
+      gainOverride,
+      gammaOverride,
+      redRangeOverride,
+      greenRangeOverride,
+      blueRangeOverride,
+      valueRangeOverride,
       atmFilter,
       layers,
     } = this.getUrlParams();
@@ -150,8 +184,12 @@ class App extends Component {
       time,
       evalscript: window.decodeURIComponent(evalscript),
       evalscripturl,
-      gain: gain ? parseFloat(gain) : undefined,
-      gamma: gamma ? parseFloat(gamma) : undefined,
+      gainOverride: gainOverride ? parseFloat(gainOverride) : undefined,
+      gammaOverride: gammaOverride ? parseFloat(gammaOverride) : undefined,
+      redRangeOverride: redRangeOverride ? JSON.parse(redRangeOverride) : undefined,
+      greenRangeOverride: greenRangeOverride ? JSON.parse(greenRangeOverride) : undefined,
+      blueRangeOverride: blueRangeOverride ? JSON.parse(blueRangeOverride) : undefined,
+      valueRangeOverride: valueRangeOverride ? JSON.parse(valueRangeOverride) : undefined,
       atmFilter,
       layers: parsedLayers,
     };
@@ -167,13 +205,13 @@ class App extends Component {
       });
     } else if (instanceId) {
       try {
-        const userInstances = await loginAndLoadInstances();
+        const userInstances = await loadInstances();
         const selectedInstance = userInstances.find(inst => inst['@id'] === instanceId);
         if (!selectedInstance) {
           App.displayErrorMessage("You don't have access to this instance.");
           return;
         }
-        await loadGetCapabilities(selectedInstance);
+        await loadGetCapabilitiesAndSaveLayers(selectedInstance);
         Store.setTabIndex(2);
         Store.setDatasources([selectedInstance.name]);
         Store.setSelectedResult({
@@ -198,17 +236,8 @@ class App extends Component {
   onHoverTile = i => {
     this._map.refs.wrappedInstance.highlightTile(i);
   };
-  onZoomToPin = item => {
-    this._map.refs.wrappedInstance.onZoomToPin(item);
-  };
-  onZoomTo = () => {
-    this._map.refs.wrappedInstance.zoomToActivePolygon();
-  };
-  onCompareChange = isCompare => {
-    this.setState({ isCompare: isCompare });
-  };
   onOpacityChange = (opacity, index) => {
-    Store.setPinOpacity(index, opacity);
+    Store.setPinProperty(index, 'opacity', opacity);
     this._map.refs.wrappedInstance.setOverlayParams(opacity, index);
   };
   pinOrderChange = (oldIndex, newIndex) => {
@@ -220,39 +249,32 @@ class App extends Component {
 
   hideTools = () => {
     this.setState({ toolsVisible: false });
-    this.invalidateMapSize(400); // sidebar CSS animation takes 0.3s
   };
   showTools = () => {
     this.setState({ toolsVisible: true });
-    this.invalidateMapSize(400); // sidebar CSS animation takes 0.3s
-  };
-  invalidateMapSize = delayMs => {
-    setTimeout(() => {
-      this._map.refs.wrappedInstance.invalidateMapSize({ pan: false });
-    }, delayMs);
   };
 
   renderTools() {
     return (
-      <div>
+      <div
+        style={{
+          display: this.state.toolsVisible ? 'block' : 'none',
+        }}
+      >
         <Tools
           onFinishSearch={this.onFinishSearch}
           onHoverTile={this.onHoverTile}
           onClearData={this.onClearData}
-          selectedTile={this.state.selectedTile}
-          onCompareChange={this.onCompareChange}
           onOpacityChange={this.onOpacityChange}
           pinOrderChange={this.pinOrderChange}
-          onZoomToPin={this.onZoomToPin}
           onCollapse={this.hideTools}
+          themes={this.state.themes}
         />
       </div>
     );
   }
 
   render() {
-    const sideBarWidth = Math.max(300, Math.min(440, window.innerWidth - 40));
-    const mapWidth = this.state.toolsVisible ? window.innerWidth - sideBarWidth : window.innerWidth;
     if (!this.state.isLoaded) {
       return (
         <div id="loading">
@@ -263,63 +285,42 @@ class App extends Component {
 
     return (
       <div className="eocloudRoot">
-        <Sidebar
-          sidebar={this.renderTools()}
-          docked={this.state.toolsVisible}
-          styles={{
-            sidebar: {
-              // sidebar width should be:
-              // - at least 300 (if window is too narrow, user must scroll horizontally)
-              // - at most 440 (if window is very wide, we don't need that much space)
-              // - equal to window width otherwise (fill the whole window and make the best of it)
-              width: sideBarWidth,
-              backgroundColor: '#3b3d4d',
-            },
-            root: {
-              overflow: 'auto',
-            },
-            content: {
-              overflow: 'initial',
-            },
+        <AlertContainer ref={a => (this.msg = a)} {...this.alertOptions} />
+
+        <RootMap
+          ref={e => {
+            this._map = e;
           }}
-        >
-          <AlertContainer ref={a => (this.msg = a)} {...this.alertOptions} />
+          location={this.state.location}
+          mapId="mapId"
+        />
 
-          <RootMap
-            ref={e => {
-              this._map = e;
-            }}
-            location={this.state.location}
-            mapId="mapId"
-            width={mapWidth}
-          />
-
-          <div id="Controls">
-            <div id="ControlsContent">
-              <div className="pull-right">
-                <DummyIcon />
-                <div className="clear-both-700" />
-                <SearchBox
-                  onLocationPicked={this.setMapLocation}
-                  toolsVisible={this.state.toolsVisible}
-                  hideTools={this.hideTools}
-                />
-              </div>
+        <div id="Controls">
+          <div id="ControlsContent">
+            <div className="pull-right shadow">
+              <LocationSearchBox
+                googleAccessToken={process.env.REACT_APP_GOOGLE_API_KEY}
+                placeholder="Go to Place"
+                minChar={4}
+                onSelect={this.setMapLocation}
+              />
             </div>
           </div>
+        </div>
 
-          {!this.state.toolsVisible && (
-            <a className="toggleSettings" onClick={this.showTools}>
-              <i className="fa fa-bars" />
-            </a>
-          )}
+        {this.renderTools()}
 
-          {this.props.modalDialogs.map(tc => (
-            <div key={tc.id} className="modalDialog">
-              {tc.component}
-            </div>
-          ))}
-        </Sidebar>
+        {!this.state.toolsVisible && (
+          <a className="toggleSettings" onClick={this.showTools}>
+            <i className="fa fa-bars" />
+          </a>
+        )}
+
+        {this.props.modalDialogs.map(tc => (
+          <div key={tc.id} className="modalDialog">
+            {tc.component}
+          </div>
+        ))}
       </div>
     );
   }

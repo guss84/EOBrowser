@@ -1,30 +1,34 @@
 import React, { Component } from 'react';
-import DayPicker, { DateUtils } from 'react-day-picker';
+import DayPicker from 'react-day-picker';
 import moment from 'moment';
 import Store from '../../store';
 import onClickOutside from 'react-onclickoutside';
 import AlertContainer from 'react-alert';
-import { queryDatesForActiveMonth, getAndSetNextPrev } from '../../utils/datesHelper';
+import {
+  queryDatesForActiveMonth,
+  getAndSetNextPrev,
+  STANDARD_STRING_DATE_FORMAT,
+} from '../../utils/datesHelper';
 import 'react-day-picker/lib/style.css';
 import './DayPicker.scss';
-import { formatDate } from 'react-day-picker/moment';
-
-const maxToDate = new Date();
-const minFromDate = new Date('1984-01-01');
 
 class MyDatePicker extends Component {
   static defaultProps = {
     showNextPrev: false,
     searchAvailableDays: true,
     alignment: 'lb',
+    minDate: new Date(Store.current.minDate),
+    maxDate: new Date(Store.current.maxDate),
+    onExpandedChange: () => {},
   };
   constructor(props) {
     super(props);
     this.state = {
       availableDays: [],
-      dateInput: this.props.selectedDay,
+      dateInput: this.props.selectedDay.format(STANDARD_STRING_DATE_FORMAT),
+      initialSelectedDay: this.props.selectedDay,
+      selectedDay: this.props.selectedDay,
       expanded: false,
-      month: new Date(this.props.selectedDay),
     };
     this.setTextInputRef = element => {
       this.textInput = element;
@@ -38,58 +42,80 @@ class MyDatePicker extends Component {
     transition: 'scale',
   };
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.selectedDay !== this.props.selectedDay)
-      this.setState({
-        dateInput: nextProps.selectedDay,
-        month: new Date(nextProps.selectedDay),
-      });
+  static getDerivedStateFromProps(props, state) {
+    if (
+      props.selectedDay.format(STANDARD_STRING_DATE_FORMAT) !==
+      state.initialSelectedDay.format(STANDARD_STRING_DATE_FORMAT)
+    ) {
+      return {
+        dateInput: props.selectedDay.format(STANDARD_STRING_DATE_FORMAT),
+        selectedDay: props.selectedDay,
+        initialSelectedDay: props.selectedDay,
+      };
+    }
+    return null;
   }
 
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.expanded !== this.state.expanded) {
+      this.props.onExpandedChange(this.state.expanded);
+    }
+  }
   showAlert = msg => {
     this.alertContainer.show(msg, {
       type: 'info',
     });
   };
 
-  updateAvailableDaysInMonth = date => {
+  fetchAvailableDaysInMonth = date => {
     if (!this.props.searchAvailableDays) return;
-    queryDatesForActiveMonth(date, this.props.datasource || null).then(res => {
+    queryDatesForActiveMonth(date, this.props.datasource || null).then(dateArray => {
       this.setState({
-        availableDays: res,
+        availableDays: dateArray,
       });
     });
   };
 
-  handleDayClick = (day, modifiers, e) => {
-    this.props.onSelect(moment(day).format(Store.current.dateFormat));
+  handleDayClick = dateString => {
+    const date = moment(dateString);
+    this.props.onSelect(date);
     this.setState({
-      selectedDay: formatDate(new Date(day), 'YYYY-MM-DD'),
-      month: day,
+      selectedDay: date,
       expanded: false,
     });
     this.textInput.blur();
   };
 
   onMonthChange = day => {
-    this.updateAvailableDaysInMonth(day);
+    this.fetchAvailableDaysInMonth(day);
   };
 
   showDatePicker = e => {
-    this.setState(oldState => {
-      const willExpand = !oldState.expanded;
-      if (willExpand) {
-        this.updateAvailableDaysInMonth(oldState.selectedDay);
-      }
-      return {
-        expanded: true,
-      };
+    this.setState({
+      expanded: true,
     });
   };
 
-  handleYearMonthChange = month => {
-    this.setState({ month });
-    this.onMonthChange(month);
+  handleYearMonthChange = selectedMonthYear => {
+    this.setState(
+      oldState => {
+        let selectedDay = moment(selectedMonthYear);
+        const dayInMonth = oldState.selectedDay.date();
+        const daysInMonthDropdown = selectedDay.endOf('month').date();
+        if (daysInMonthDropdown > dayInMonth) {
+          selectedDay = selectedDay.date(dayInMonth);
+        } else {
+          selectedDay = selectedDay.date(daysInMonthDropdown);
+        }
+
+        return {
+          selectedDay,
+        };
+      },
+      () => {
+        this.daypicker.showMonth(new Date(selectedMonthYear));
+      },
+    );
   };
 
   onNextOrPrev = direction => {
@@ -103,74 +129,82 @@ class MyDatePicker extends Component {
   };
 
   onFocusHandler = e => {
-    this.updateAvailableDaysInMonth(e.target.value);
+    this.fetchAvailableDaysInMonth(e.target.value);
     this.setState({
       expanded: true,
     });
   };
 
   inputChange = e => {
-    if (DateUtils.isDate(new Date(e.target.value))) {
-      this.setState({ selectedDay: e.target.value });
+    const date = moment(e.target.value, STANDARD_STRING_DATE_FORMAT, true); //true for strict parsing
+    if (date.isValid()) {
+      this.daypicker.showMonth(new Date(e.target.value));
+      this.setState({ dateInput: e.target.value, selectedDay: date });
+    } else {
+      this.setState({ dateInput: e.target.value });
     }
-    this.setState({ dateInput: e.target.value });
   };
 
   handleKeyPress = e => {
     if (e.key === 'Enter') {
-      if (DateUtils.isDate(new Date(e.target.value))) {
+      const date = moment(e.target.value, STANDARD_STRING_DATE_FORMAT, true); //true for strict parsing
+      if (date.isValid()) {
         this.handleDayClick(e.target.value);
       }
     }
   };
 
   handleClickOutside = () => {
-    this.setState({ expanded: false });
+    this.setState({ expanded: false }, () => {
+      if (
+        this.state.initialSelectedDay.format(STANDARD_STRING_DATE_FORMAT) !==
+        this.props.selectedDay.format(STANDARD_STRING_DATE_FORMAT)
+      ) {
+        this.props.onSelect(this.state.selectedDay);
+      }
+    });
   };
 
   renderDatePicker = () => {
     const modifiers = {
       available: this.state.availableDays.map(day => new Date(day)),
-      selected: new Date(this.props.selectedDay),
+      selected: this.state.selectedDay.toDate(),
     };
 
-    const isTop = this.props.alignment.includes('t');
     const isLeft = this.props.alignment.includes('l');
     let style;
 
-    if (isTop) {
-      if (isLeft) {
-        style = { bottom: 30, left: 20 };
-      } else {
-        style = { bottom: 30, left: -80 };
-      }
+    if (isLeft) {
+      style = { left: 20 };
     } else {
-      if (isLeft) {
-        style = { top: 10, left: 20 };
-      } else {
-        style = { top: 10, left: -80 };
-      }
+      style = { left: -75 };
     }
 
+    style.position = 'absolute';
     return (
-      <div style={{ position: 'relative' }}>
-        <div className="YearNavigation day-overlay" style={style}>
-          <DayPicker
-            showOutsideDays
-            onMonthChange={month => this.onMonthChange(month)}
-            modifiers={modifiers}
-            month={new Date(this.state.month) || new Date(this.props.selectedDay)}
-            minFromDate={minFromDate}
-            maxToDate={maxToDate}
-            onDayClick={this.handleDayClick}
-            disabledDays={[{ after: new Date() }]}
-            captionElement={({ date, localeUtils }) => (
-              <YearMonthForm date={date} localeUtils={localeUtils} onChange={this.handleYearMonthChange} />
-            )}
-            navbarElement={<Navbar />}
-          />
-          <div style={{ clear: 'both' }} />
-        </div>
+      <div className="YearNavigation day-overlay" style={style}>
+        <DayPicker
+          ref={el => (this.daypicker = el)}
+          showOutsideDays
+          onMonthChange={month => this.onMonthChange(month)}
+          modifiers={modifiers}
+          month={this.state.selectedDay.toDate()} // initial month, for when expanding
+          minFromDate={this.props.minDate}
+          maxToDate={this.props.maxDate}
+          onDayClick={this.handleDayClick}
+          disabledDays={[{ after: new Date() }]}
+          captionElement={({ minFromDate, date, localeUtils }) => (
+            <YearMonthForm
+              minFromDate={this.props.minDate}
+              maxToDate={this.props.maxDate}
+              date={date}
+              localeUtils={localeUtils}
+              onChange={this.handleYearMonthChange}
+            />
+          )}
+          navbarElement={<Navbar />}
+        />
+        <div style={{ clear: 'both' }} />
       </div>
     );
   };
@@ -217,7 +251,7 @@ class MyDatePicker extends Component {
   }
 }
 
-const YearMonthForm = ({ date, localeUtils, onChange }) => {
+const YearMonthForm = ({ minFromDate, maxToDate, date, localeUtils, onChange }) => {
   const months = localeUtils.getMonths();
 
   const years = [];

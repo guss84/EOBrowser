@@ -1,0 +1,333 @@
+[
+    {
+        "name": "Default",
+        "content": [
+
+            {
+                "name": "Landsat 5 ESA",
+                "service": "WMS",
+                "url": "https://eocloud.sentinel-hub.com/v1/wms/e3e5e6c2-d1eb-419a-841c-5167a1de5441",
+                "layersExclude": "/^B[0-9][0-9A]/i"
+            },
+
+            {
+                "name": "Landsat 7 ESA",
+                "service": "WMS",
+                "url": "https://eocloud.sentinel-hub.com/v1/wms/65e58cf7-96c2-429e-89b5-5dcb15983c47",
+                "layersExclude": "/^B[0-9][0-9A]/i"
+            },
+
+            {
+                "name": "Landsat 8 ESA",
+                "service": "WMS",
+                "url": "https://eocloud.sentinel-hub.com/v1/wms/2d8dbfcb-5fa0-4198-ba57-8ad594c3757e",
+                "layersExclude": "/^B[0-9][0-9A]/i"
+            },
+
+            {
+                "name": "Landsat 8 USGS",
+                "service": "WMS",
+                "url": "https://services-uswest2.sentinel-hub.com/ogc/wms/5a32b8f5-a7fd-4dfd-9b76-f9b1b9d650b2",
+                "preselected": true
+            },
+
+            {
+                "name": "Sentinel-1 EOCloud GRD IW",
+                "service": "WMS",
+                "url": "https://eocloud.sentinel-hub.com/v1/wms/6a6b787f-0dda-4153-8ae9-a1729dd0c890",
+                "layersExclude": [ "VV", "VH", "HH", "HV" ]
+            },
+
+            {
+                "name": "Sentinel-1 EOCloud GRD EW",
+                "service": "WMS",
+                "url": "https://eocloud.sentinel-hub.com/v1/wms/52803c64-23ae-4c61-88e1-1859aa98a8c8",
+                "layersExclude": [ "VV", "VH", "HH", "HV" ]
+            },
+
+            {
+                "name": "Sentinel-1 EOCloud GRD EW SH",
+                "service": "WMS",
+                "url": "https://eocloud.sentinel-hub.com/v1/wms/3f532158-bdf9-461a-8bb0-dbdd3a810b3f",
+                "layersExclude": [ "VV", "VH", "HH", "HV" ]
+            },
+
+            {
+                "name": "Sentinel-1 AWS EW HH",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/a38734fb-b3fd-402a-9e2e-fb48a636a783",
+                "layersExclude": [ "VV", "VH", "HH", "HV" ]
+            },
+            {
+                "name": "Sentinel-1 AWS EW HH+HV",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/5887863d-3c49-4c96-8c62-afc13dd8a04a",
+                "layersExclude": [ "VV", "VH", "HH", "HV" ]
+            },
+            {
+                "name": "Sentinel-1 AWS IW VV",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/4e60d029-b67b-4cd1-b624-063bea1f52af",
+                "layersExclude": [ "VV", "VH", "HH", "HV" ]
+            },
+            {
+                "name": "Sentinel-1 AWS IW VV+VH",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/bfbfc449-320a-4a56-b493-61c9d4fc67e8",
+                "layersExclude": [ "VV", "VH", "HH", "HV" ]
+            },
+
+            {
+                "name": "Sentinel-2 L1C",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/cd280189-7c51-45a6-ab05-f96a76067710",
+                "preselected": true
+            },
+
+            {
+                "name": "Sentinel-2 L2A",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/ed64bf38-72da-4723-9c06-568b76b8add0"
+            },
+
+            {
+                "name": "Sentinel-3 SLSTR",
+                "service": "WMS",
+                "url": "https://creodias.sentinel-hub.com/ogc/wms/cf195685-ed7e-43d0-b476-9b43c75a5f90"
+            },
+
+            {
+                "name": "Sentinel-3 OLCI",
+                "service": "WMS",
+                "url": "https://creodias.sentinel-hub.com/ogc/wms/f74cbfcc-57ef-4159-a3db-43fca35c08a4",
+                "layersExclude": "/^B[0-9][0-9A]/i",
+                "preselected": true
+            },
+
+            {
+                "name": "Sentinel-5P O3 / NO2 / ...",
+                "service": "WMS",
+                "url": "https://creodias.sentinel-hub.com/ogc/wms/680f26dd-bbde-4ff3-af19-aed31531d930",
+                "layersInclude": [
+                    "/^O3/",
+                    "/^NO2/",
+                    "/^CO/",
+                    "/^AER_AI/",
+                    "/^CLOUD/"
+                ],
+                "layersExclude": [
+                    "AER_AI_340_380",
+                    "AER_AI_354_388",
+                    "CLOUD_BASE_HEIGHT",
+                    "CLOUD_BASE_PRESSURE",
+                    "CLOUD_FRACTION",
+                    "CLOUD_OPTICAL_THICKNESS",
+                    "CLOUD_TOP_HEIGHT",
+                    "CLOUD_TOP_PRESSURE",
+                    "CO",
+                    "NO2",
+                    "O3"
+                ]
+            },
+
+            {
+                "name": "MODIS",
+                "service": "WMS",
+                "url": "https://services-uswest2.sentinel-hub.com/ogc/wms/f268e8d2-4f6e-4641-b45a-9f6d493321f2"
+            },
+
+            {
+                "name": "Envisat Meris",
+                "service": "WMS",
+                "url": "https://eocloud.sentinel-hub.com/v1/wms/65a188c4-b50b-4e4c-9059-b208389e51ff",
+                "layersExclude": "/^B[0-9][0-9A]/i"
+            },
+
+            {
+                "name": "Proba-V",
+                "service": "WMS",
+                "url": "https://proba-v-mep.esa.int/applications/geo-viewer/app/geoserver/ows",
+                "layersExclude": "/_1KM$/"
+            },
+
+            {
+                "name": "GIBS",
+                "service": "WMTS",
+                "url": "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/wmts.cgi",
+                "layersInclude": [
+                    "/^MODIS_Terra_SurfaceReflectance/",
+                    "/^MODIS_Aqua_SurfaceReflectance/",
+                    "/^VIIRS_SNPP_CorrectedReflectance/",
+                    "/^VIIRS_SNPP_DayNightBand_ENCC/",
+                    "/^CALIPSO_Wide_Field_Camera_Radiance_v3-01/",
+                    "/^CALIPSO_Wide_Field_Camera_Radiance_v3-02/",
+                    "/^BlueMarble/",
+                    "/^Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual/",
+                    "/^MISR_AM1_Ellipsoid_Radiance_RGB_AA/",
+                    "/^ASTER_GDEM/"
+                ]
+            }
+
+        ]
+    },
+
+    {
+        "name": "Wildfires",
+        "content": [
+            {
+                "name": "Wildfires (S-2 L1C)",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/8327f786-27aa-4fb1-be7d-5475fab0b739",
+                "preselected": true
+            },
+            {
+                "name": "Wildfires (S-2 L2A)",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/375bc117-6f9c-4006-99af-8fe32a13eea9"
+            },
+            {
+                "name": "Wildfires (S-5P)",
+                "service": "WMS",
+                "url": "https://creodias.sentinel-hub.com/ogc/wms/680f26dd-bbde-4ff3-af19-aed31531d930"
+            }
+        ],
+        "pins": [
+            {
+                "pinTitle": "NBR after wildfire",
+                "lat": 32.7335,
+                "lng": -17.0427,
+                "zoom": 12,
+                "preset": "NORMALIZED-BURN-RATIO",
+                "datasource": "Sentinel-2 L1C - wildfires",
+                "time": "2016-08-17",
+                "evalscript": "",
+                "evalscripturl": ""
+              },
+              {
+                "pinTitle": "NBR before wildfire",
+                "lat": 32.7335,
+                "lng": -17.0427,
+                "zoom": 12,
+                "preset": "NORMALIZED-BURN-RATIO",
+                "datasource": "Sentinel-2 L1C - wildfires",
+                "time": "2016-08-07",
+                "evalscript": "",
+                "evalscripturl": ""
+              },
+              {
+                "pinTitle": "Before wildfire",
+                "lat": 32.7335,
+                "lng": -17.0427,
+                "zoom": 12,
+                "preset": "TRUE-COLOR",
+                "datasource": "Sentinel-2 L1C - wildfires",
+                "time": "2016-08-07",
+                "evalscript": "",
+                "evalscripturl": ""
+              },
+              {
+                "pinTitle": "After wildfire",
+                "lat": 32.7335,
+                "lng": -17.0427,
+                "zoom": 12,
+                "preset": "TRUE-COLOR",
+                "datasource": "Sentinel-2 L1C - wildfires",
+                "time": "2016-08-17",
+                "evalscript": "",
+                "evalscripturl": ""
+              }
+
+          ]
+    },
+
+	{
+        "name": "Volcanoes",
+        "content": [
+            {
+                "name": "Volcanoes (S2 L1C)",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/3c739a78-573b-425c-82eb-78b617d39d25",
+                "preselected": true
+            },
+            {
+                "name": "Volcanoes (S2 L2A)",
+                "service": "WMS",
+                "url": "https://services.sentinel-hub.com/ogc/wms/d3c58479-ae72-48a9-bfb2-4273baaf25fe"
+            },
+			{
+                "name": "Volcanoes (L8 L1C)",
+                "service": "WMS",
+                "url": "https://services-uswest2.sentinel-hub.com/ogc/wms/e5efe6fb-7c55-431b-913f-2bb8ea5afb29"
+            }
+        ],
+        "pins": [
+			{
+                "pinTitle": "Etna, ",
+                "lat": 37.74371,
+				"lng": 15.004059999999982,
+                "zoom": 13,
+                "preset": "FALSE-COLOR-URBAN",
+                "datasource": "Sentinel-2 L1C - volcanoes",
+                "time": "2018-12-26",
+                "evalscript": "",
+                "evalscripturl": ""
+            },
+            {
+                "pinTitle": "Nyiragongo",
+                "lat": -1.5220378,
+                "lng": 29.24945660000003,
+                "zoom": 13,
+                "preset": "FALSE-COLOR-URBAN",
+                "datasource": "Sentinel-2 L1C - volcanoes",
+                "time": "2018-08-11",
+                "evalscript": "",
+                "evalscripturl": ""
+            },
+			{
+                "pinTitle": "Yasur Volcano, Vanuatu",
+                "lat": -19.526667349346348,
+				"lng": 169.4366455078125,
+                "zoom": 14,
+                "preset": "FALSE-COLOR-URBAN",
+                "datasource": "Sentinel-2 L1C - volcanoes",
+                "time": "2018-12-02",
+                "evalscript": "",
+                "evalscripturl": ""
+            },
+			{
+                "pinTitle": "Pacaya",
+                "lat": 14.385467017006029,
+				"lng": -90.61514854431153,
+                "zoom": 14,
+                "preset": "TRUE-COLOR-LAVA-FLOW",
+                "datasource": "Sentinel-2 L1C - volcanoes",
+                "time": "2019-01-30",
+                "evalscript": "",
+                "evalscripturl": ""
+            },
+			{
+                "pinTitle": "Stromboli Vulcan, Stromboli, Province of Messina, Italy",
+                "lat": 38.7931301,
+				"lng": 15.211227399999985,
+                "zoom": 14,
+                "preset": "FALSE-COLOR-URBAN",
+                "datasource": "Sentinel-2 L1C - volcanoes",
+                "time": "2019-02-07",
+                "evalscript": "",
+                "evalscripturl": ""
+            },
+			{
+                "pinTitle": "Erta Ale, Ethiopia",
+                "lat": 13.592683183820354,
+                "lng": 40.68614959716797,
+                "zoom": 13,
+                "preset": "FALSE-COLOR-URBAN",
+                "datasource": "Sentinel-2 L1C - volcanoes",
+                "time": "2019-02-03",
+                "evalscript": "",
+                "evalscripturl": ""
+              }
+          ]
+    }
+
+]

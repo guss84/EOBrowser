@@ -18,7 +18,7 @@
     }
   }
 
-  div.content {
+  div.fis-content {
     margin-top: 30px;
   }
 
@@ -44,7 +44,7 @@
       border-bottom: 3px solid #22232d;
     }
     a.btn.selected {
-      border-bottom: 3px solid #B6BF00;
+      border-bottom: 3px solid #b6bf00;
     }
   }
 
@@ -60,7 +60,8 @@
     text {
       fill: #fff;
     }
-    path, line {
+    path,
+    line {
       fill: none;
     }
     path.tick-line {
@@ -68,6 +69,26 @@
       stroke: #666666;
       stroke-dasharray: 5, 5;
     }
+    line.axis-baseline {
+      shape-rendering: crispEdges;
+      stroke: #eeeeee;
+    }
+  }
+
+  svg.background-graphics {
+    text {
+      fill: #fff;
+    }
+    path,
+    line {
+      fill: none;
+    }
+    path.tick-line {
+      shape-rendering: crispEdges;
+      stroke: #666666;
+      stroke-dasharray: 5, 5;
+    }
+
     line.axis-baseline {
       shape-rendering: crispEdges;
       stroke: #eeeeee;

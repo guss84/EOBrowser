@@ -1,0 +1,239 @@
+{
+  "version": 8,
+  "name": "Satellite streets",
+  "metadata": {
+    "mapbox:autocomposite": false,
+    "mapbox:type": "template",
+    "maputnik:renderer": "mbgljs",
+    "openmaptiles:version": "3.x",
+    "maptiler:copyright":
+      "This style was generated on MapTiler Cloud. Usage outside of MapTiler Cloud requires valid OpenMapTiles Production Package: https://openmaptiles.com/production-package/ -- please contact us."
+  },
+  "center": [14.4215, 50.0876],
+  "zoom": 2,
+  "bearing": 0,
+  "pitch": 0,
+  "sources": {
+    "openmaptiles": {
+      "type": "vector",
+      "url": "https://maps.tilehosting.com/data/v3.json?key=tezsrAxrPHUTiDVq6BEQ"
+    },
+    "satellite": {
+      "type": "raster",
+      "url": "https://maps.tilehosting.com/data/satellite.json?key=tezsrAxrPHUTiDVq6BEQ",
+      "tileSize": 256
+    },
+    "maptiler_attribution": {
+      "type": "vector",
+      "attribution":
+        "<a href=\"https://www.maptiler.com/license/maps/\" target=\"_blank\">&copy; MapTiler</a> <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>"
+    }
+  },
+  "glyphs": "https://maps.tilehosting.com/fonts/{fontstack}/{range}.pbf?key=tezsrAxrPHUTiDVq6BEQ",
+  "layers": [
+    {
+      "id": "road_path",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "path", "track"]],
+      "layout": { "line-cap": "square", "line-join": "bevel" },
+      "paint": {
+        "line-color": "rgba(247, 247, 247, 0.33)",
+        "line-dasharray": [1, 1],
+        "line-width": { "base": 1.55, "stops": [[7, 0.25], [20, 4]] }
+      }
+    },
+    {
+      "id": "road_minor",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "minor", "service"]],
+      "layout": { "line-cap": "butt", "line-join": "round" },
+      "paint": {
+        "line-color": "rgba(247, 247, 247, 0.12)",
+        "line-width": { "base": 1.55, "stops": [[4, 0.25], [20, 10]] }
+      }
+    },
+    {
+      "id": "tunnel_minor",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        ["==", "$type", "LineString"],
+        ["==", "brunnel", "tunnel"],
+        ["==", "class", "minor_road"]
+      ],
+      "layout": { "line-cap": "butt", "line-join": "miter" },
+      "paint": {
+        "line-color": "rgba(239, 239, 239, 0.2)",
+        "line-width": { "base": 1.55, "stops": [[4, 0.25], [20, 30]] },
+        "line-dasharray": [0.36, 0.18]
+      }
+    },
+    {
+      "id": "tunnel_major",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        ["==", "$type", "LineString"],
+        ["==", "brunnel", "tunnel"],
+        ["in", "class", "primary", "secondary", "tertiary", "trunk"]
+      ],
+      "layout": { "line-cap": "butt", "line-join": "miter" },
+      "paint": {
+        "line-color": "rgba(255, 255, 255, 0.2)",
+        "line-width": { "base": 1.4, "stops": [[6, 0.5], [20, 30]] },
+        "line-dasharray": [0.28, 0.14]
+      }
+    },
+    {
+      "id": "road_trunk_primary-case",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "minzoom": 8,
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "trunk", "primary"]],
+      "layout": { "line-cap": "round", "line-join": "round" },
+      "paint": {
+        "line-color": { "stops": [[8, "rgba(88, 85, 85, 0.55)"], [10, "rgba(127, 126, 126, 1)"]] },
+        "line-width": { "base": 1.4, "stops": [[8, 0.6], [10, 1], [15, 4]] }
+      }
+    },
+    {
+      "id": "road_trunk_primary",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "minzoom": 8,
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "trunk", "primary"]],
+      "layout": { "line-cap": "round", "line-join": "round" },
+      "paint": {
+        "line-color": { "stops": [[8, "rgba(144, 142, 142, 0.59)"], [10, "rgba(222, 222, 222, 1)"]] },
+        "line-width": { "base": 1.4, "stops": [[8, 0.5], [10, 1], [15, 2]] }
+      }
+    },
+    {
+      "id": "road_secondary_tertiary_trunk",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "minzoom": 9,
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "secondary", "tertiary"]],
+      "layout": { "line-cap": "butt", "line-join": "round", "visibility": "visible" },
+      "paint": {
+        "line-color": "rgba(166, 166, 166, 0.81)",
+        "line-width": { "base": 1.4, "stops": [[6, 0.5], [20, 6]] }
+      }
+    },
+    {
+      "id": "road_major_motorway",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "minzoom": 6,
+      "filter": [
+        "all",
+        ["==", "$type", "LineString"],
+        ["all", ["!in", "structure", "bridge", "tunnel"], ["==", "class", "motorway"]]
+      ],
+      "layout": { "line-cap": { "base": 1, "stops": [[10, "round"], [12, "butt"]] }, "line-join": "round" },
+      "paint": {
+        "line-color": {
+          "base": 1,
+          "stops": [[5, "rgba(212, 195, 110, 1)"], [14.5, "rgba(216, 199, 124, 1)"], [18, "hsl(84, 2%, 82%)"]]
+        },
+        "line-opacity": { "base": 1, "stops": [[14, 1], [16, 0]] },
+        "line-width": { "base": 1.5, "stops": [[5, 1], [12, 2], [18, 1]] }
+      }
+    },
+    {
+      "id": "railway",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": ["==", "class", "rail"],
+      "layout": { "visibility": "visible" },
+      "paint": {
+        "line-color": "rgba(179, 170, 158, 0.2)",
+        "line-opacity": { "base": 1, "stops": [[11, 0], [16, 1]] }
+      }
+    },
+    {
+      "id": "bridge_minor case",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        ["==", "$type", "LineString"],
+        ["==", "brunnel", "bridge"],
+        ["==", "class", "minor_road"]
+      ],
+      "layout": { "line-cap": "butt", "line-join": "miter", "visibility": "none" },
+      "paint": {
+        "line-color": "rgba(222, 222, 222, 0.2)",
+        "line-width": { "base": 1.6, "stops": [[12, 0.5], [20, 10]] },
+        "line-gap-width": { "base": 1.55, "stops": [[4, 0.25], [20, 30]] }
+      }
+    },
+    {
+      "id": "bridge_major case",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        ["==", "$type", "LineString"],
+        ["==", "brunnel", "bridge"],
+        ["in", "class", "primary", "secondary", "tertiary", "trunk"]
+      ],
+      "layout": { "line-cap": "butt", "line-join": "miter", "visibility": "none" },
+      "paint": {
+        "line-color": "rgba(222, 222, 222, 0.2)",
+        "line-width": { "base": 1.6, "stops": [[12, 0.5], [20, 10]] },
+        "line-gap-width": { "base": 1.55, "stops": [[4, 0.25], [20, 30]] }
+      }
+    },
+    {
+      "id": "bridge_minor",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        ["==", "$type", "LineString"],
+        ["==", "brunnel", "bridge"],
+        ["==", "class", "minor_road"]
+      ],
+      "layout": { "line-cap": "round", "line-join": "round", "visibility": "none" },
+      "paint": {
+        "line-color": "rgba(239, 239, 239, 0.2)",
+        "line-width": { "base": 1.55, "stops": [[4, 0.25], [20, 30]] }
+      }
+    },
+    {
+      "id": "bridge_major",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        ["==", "$type", "LineString"],
+        ["==", "brunnel", "bridge"],
+        ["in", "class", "primary", "secondary", "tertiary", "trunk"]
+      ],
+      "layout": { "line-cap": "round", "line-join": "round", "visibility": "none" },
+      "paint": {
+        "line-color": "rgba(255, 255, 255, 0.2)",
+        "line-width": { "base": 1.4, "stops": [[6, 0.5], [20, 30]] }
+      }
+    }
+  ],
+  "id": "+hybrid"
+}

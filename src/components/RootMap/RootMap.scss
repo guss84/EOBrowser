@@ -23,89 +23,81 @@
   z-index: 100;
   box-shadow: 0 2px 4px #000;
 }
-.aoiPanel {
+.panelButton {
   position: absolute !important;
   right: 10px;
-  top: 60px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
   z-index: 10;
   background: #3b3d4d;
   color: #fff;
-  height: 42px;
+  height: 40px;
   -webkit-box-shadow: 0 2px 5px #000;
   box-shadow: 0 2px 5px #000;
   text-align: center;
+
+  &.aoiPanel {
+    top: 60px;
+    .aoiCords {
+      padding-left: 5px;
+    }
+    .area-text {
+      padding: 5px;
+    }
+  }
+  &.poiPanel {
+    top: 110px;
+  }
+  &.measurePanel {
+    top: 160px;
+    .aoiCords {
+      padding-left: 5px;
+    }
+  }
+  &.screenshotPanelButton {
+    top: 210px;
+  }
+  &.timelapsePanelButton {
+    top: 260px;
+  }
+  &.infoPanelButton {
+    top: 10px;
+  }
+
+  &#animatedInfoPanelButton {
+    top: 50vh;
+    right: 50vw;
+    width: 40px;
+    display: none;
+  }
 
   > * {
     display: inline-block;
     vertical-align: middle;
     font-size: 12px;
   }
-  .aoiCords {
-    padding-left: 5px;
-  }
+
   .drawGeometry {
     background-color: #191a25;
   }
   i {
     font-size: 20px;
-    line-height: 42px;
-    width: 42px;
+    line-height: 40px;
+    width: 40px;
     cursor: pointer;
   }
   a {
     color: #b6bf00;
     background: none;
     display: inline-block;
-    width: 42px;
-    text-align: center;
-  }
-  a.disabled {
-    opacity: 0.5;
-  }
-  .area-text {
-    padding: 5px;
-  }
-}
-.poiPanel {
-  position: absolute !important;
-  right: 10px;
-  top: 110px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  z-index: 10;
-  background: #3b3d4d;
-  color: #fff;
-  height: 42px;
-  -webkit-box-shadow: 0 2px 5px #000;
-  box-shadow: 0 2px 5px #000;
-  text-align: center;
-
-  > * {
-    display: inline-block;
-    vertical-align: middle;
-    font-size: 12px;
-  }
-
-  .drawGeometry {
-    background-color: #191a25;
-  }
-  i {
-    font-size: 20px;
-    line-height: 42px;
-  }
-  a {
-    color: #b6bf00;
-    background: none;
-    width: 42px;
-    display: inline-block;
+    width: 40px;
     text-align: center;
   }
   a.disabled {
     opacity: 0.5;
   }
 }
+
 .drawAreaPanel {
   position: absolute !important;
   right: 10px;
@@ -122,18 +114,41 @@
     vertical-align: middle;
     font-size: 12px;
   }
-  .drawGeometry {
-    margin: 0 12px;
-  }
   i {
     font-size: 20px;
     line-height: 42px;
   }
 }
+.measurePanel {
+  position: absolute !important;
+  right: 10px;
+  top: 160px;
+  font-size: 12px;
+  background: #22232d;
+  color: rgba(255, 255, 255, 0.7);
+  z-index: 10;
 
+  > * {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 12px;
+  }
+}
+.measureButton {
+  border: none !important;
+  background: #22232d;
+  color: #fff;
+  border-radius: 0;
+  /*margin-top: 15px !important;*/
+  padding: 5px 5px;
+}
+.icon {
+  width: 30px;
+  height: 30px;
+}
 #mapCoords {
   position: absolute;
-  right: 240px;
+  right: 115px;
   font-size: 10px;
   bottom: 0;
   background: #22232d;
@@ -143,8 +158,17 @@
   text-align: center;
   z-index: 1;
 }
+
 .layers {
   position: absolute;
   right: 10px;
   top: 50px;
+}
+.measure-text {
+  display: inline-flex;
+  padding: 0 5px 0 5px;
+}
+
+.leaflet-bottom .leaflet-control-scale {
+  margin-bottom: 0px !important;
 }

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment';
-import request from 'axios';
+import axios, { CancelToken, isCancel } from 'axios';
 import Rodal from 'rodal';
 import Terraform from 'terraformer';
 import WKT from 'terraformer-wkt-parser';
@@ -11,7 +11,7 @@ import './FIS.scss';
 import Store from '../../store';
 import Button from '../Button';
 import CCSlider from '../CCSlider';
-import { isCustomPreset } from '../../utils/utils';
+import { isCustomPreset, evalscriptoverridesToString } from '../../utils/utils';
 
 const tooltipContent = (dataPoint, drawDistribution) => (
   <div>
@@ -57,7 +57,7 @@ const svgAnnotationRules = params => {
 
 export const getFisShadowLayer = (instanceName, originalLayerId) => {
   const { fisShadowLayers } = Store.current;
-  if (!fisShadowLayers[instanceName]) {
+  if (!fisShadowLayers || !fisShadowLayers[instanceName]) {
     return null;
   }
   return fisShadowLayers[instanceName].find(
@@ -107,10 +107,17 @@ export default class FIS extends Component {
       data: {},
       cloudCoverageData: [],
     };
+    this.cancelTokenSource = CancelToken.source();
   }
 
   componentWillMount() {
     this.ensureAllDataAvailable();
+  }
+
+  componentWillUnmount() {
+    if (this.requestInProgress) {
+      this.cancelTokenSource.cancel('Operation cancelled by user.');
+    }
   }
 
   onIntervalChange(newIntervalIndex) {
@@ -156,7 +163,7 @@ export default class FIS extends Component {
   requestFISData(fromDate, toDate) {
     if (this.requestInProgress === null) {
       // this is the first time we are issuing this request
-      const { url, params } = this.constructRequestParameters(fromDate, toDate);
+      const { url, params } = this.constructFISRequestParameters(fromDate, toDate);
       this.requestInProgress = {
         url,
         params,
@@ -167,8 +174,10 @@ export default class FIS extends Component {
     }
 
     // start request:
-    request
-      .post(this.requestInProgress.url, this.requestInProgress.params)
+    axios
+      .post(this.requestInProgress.url, this.requestInProgress.params, {
+        cancelToken: this.cancelTokenSource.token,
+      })
       .then(res => {
         const lastChannelIsCloudCoverage =
           !this.requestInProgress.params.evalscript && !this.requestInProgress.params.evalscripturl;
@@ -177,6 +186,9 @@ export default class FIS extends Component {
         this.ensureAllDataAvailable(); // this might not be the last interval needed
       })
       .catch(e => {
+        if (isCancel(e)) {
+          return;
+        }
         console.log(e);
         if (this.requestInProgress.try < this.MAX_REQUEST_RETRY) {
           console.log('Error fetching data, retrying...', e);
@@ -187,7 +199,7 @@ export default class FIS extends Component {
       });
   }
 
-  constructRequestParameters(fromDate, toDate) {
+  constructFISRequestParameters(fromDate, toDate) {
     const { poi, aoiBounds, presets, selectedResult } = Store.current;
     const area = this.props.aoiOrPoi === 'aoi' ? aoiBounds : poi.polygon;
     const geom = WKT.convert(new Terraform.Primitive(cloneDeep(area.geometry)));
@@ -221,10 +233,19 @@ export default class FIS extends Component {
       } else {
         params['evalscript'] = selectedResult.evalscript;
       }
+
       // note that server doesn't use these for evalscript-ed layers, but let's be consistent with how we do things elsewhere:
-      params['gain'] = selectedResult.gain ? selectedResult.gain : '';
-      params['gamma'] = selectedResult.gamma ? selectedResult.gamma : '';
       params['atmfilter'] = selectedResult.atmFilter ? selectedResult.atmFilter : '';
+
+      const evalscriptoverridesObj = {
+        gainOverride: selectedResult.gainOverride ? selectedResult.gainOverride : undefined,
+        gammaOverride: selectedResult.gammaOverride ? selectedResult.gammaOverride : undefined,
+        redRangeOverride: selectedResult.redRangeOverride ? selectedResult.redRangeOverride : undefined,
+        greenRangeOverride: selectedResult.greenRangeOverride ? selectedResult.greenRangeOverride : undefined,
+        blueRangeOverride: selectedResult.blueRangeOverride ? selectedResult.blueRangeOverride : undefined,
+        valueRangeOverride: selectedResult.valueRangeOverride ? selectedResult.valueRangeOverride : undefined,
+      };
+      params['evalscriptoverrides'] = btoa(evalscriptoverridesToString(evalscriptoverridesObj));
     }
 
     return {
@@ -478,7 +499,6 @@ export default class FIS extends Component {
                   fillOpacity: 0.15,
                   fill: this.chooseChartSeriesColor(d.seriesIndex, lineData.length),
                 })}
-                areaExtent={[0.0, 1.0]}
               />
             </div>
             <div>
@@ -582,11 +602,12 @@ export default class FIS extends Component {
         width={700}
         height={460 + (drawLegend ? 30 : 0)}
         onClose={this.props.onClose}
+        closeOnEsc={true}
       >
         <div className="fis">
           {this.renderTitleBar()}
 
-          <div className="content">
+          <div className="fis-content">
             {fetching && !lineData ? (
               this.renderFetching()
             ) : (

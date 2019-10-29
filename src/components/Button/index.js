@@ -6,7 +6,7 @@ export default class extends PureComponent {
     return (
       <a
         className={`btn ${className} ${fluid ? 'full-size' : ''} ${disabled ? 'disabled' : ''}`}
-        onClick={!disabled && onClick}
+        onClick={!disabled ? onClick : null}
         {...rest}
       >
         {loading ? (

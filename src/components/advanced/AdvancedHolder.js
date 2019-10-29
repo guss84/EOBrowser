@@ -1,9 +1,11 @@
 import React from 'react';
-import BandsPanel from './BandsPanel';
-import CodeMirror from './CodeMirror';
 import { connect } from 'react-redux';
+import { BandsToRGB, GroupedBandsToRGB } from 'eo-components';
+
 import Store from '../../store';
+import CodeMirror from './CodeMirror';
 import { b64EncodeUnicode, b64DecodeUnicode } from '../../utils/utils';
+
 import './advanced.scss';
 
 const ToggleModeButton = ({ isScript, onToggle }) => (
@@ -37,7 +39,7 @@ class AdvancedHolder extends React.Component {
   render() {
     const {
       channels,
-      selectedResult: { layers, evalscript, evalscripturl, datasource },
+      selectedResult: { layers, evalscript, evalscripturl, datasource, activeLayer: activeDatasource },
       currView,
       isEvalUrl,
       style,
@@ -45,6 +47,9 @@ class AdvancedHolder extends React.Component {
     } = this.props;
     const dsChannels = channels[datasource];
     const isScript = currView === views.SCRIPT;
+    const groupedChannels =
+      activeDatasource && activeDatasource.groupChannels ? activeDatasource.groupChannels(dsChannels) : null;
+
     return layers && dsChannels ? (
       <div className="advancedPanel" style={style}>
         <header>
@@ -62,8 +67,14 @@ class AdvancedHolder extends React.Component {
             onLoad={this.updateScript}
             onChange={this.updateScript}
           />
+        ) : groupedChannels ? (
+          <GroupedBandsToRGB
+            groupedBands={groupedChannels}
+            value={layers}
+            onChange={value => Store.setLayers(value)}
+          />
         ) : (
-          <BandsPanel channels={dsChannels} layers={layers} onDrag={layers => Store.setLayers(layers)} />
+          <BandsToRGB bands={dsChannels} value={layers} onChange={value => Store.setLayers(value)} />
         )}
       </div>
     ) : (

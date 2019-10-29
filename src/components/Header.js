@@ -7,15 +7,19 @@ const Header = ({ user, onLogout, showLogin, onShowLogin, onCollapse }) => (
       <i className="fa fa-chevron-left" />
     </a>
 
+    {showLogin &&
+      user && (
+        <span className="userHello">
+          Hello, <b>{user.name && user.name.trim() ? user.name : user.email}</b>
+        </span>
+      )}
+
     {showLogin && (
       <span className="userPanel">
         {user ? (
-          <div>
-            Hello, <b>{user.name}</b>
-            <a onClick={onLogout} title="Logout">
-              <i className="fa fa-power-off" />
-            </a>
-          </div>
+          <a onClick={onLogout} title="Logout">
+            <i className="fa fa-power-off" />
+          </a>
         ) : (
           <a className="btn" onClick={onShowLogin || null}>
             Login

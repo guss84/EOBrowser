@@ -1,0 +1,82 @@
+div.legend {
+  border-bottom: 1px solid #555;
+  padding: 5px 0 5px 50px;
+
+  img {
+    max-width: 300px;
+    margin-left: 15px;
+  }
+
+  div.legend-item {
+    clear: both;
+  }
+
+  div.legend-item.discrete {
+    display: flex;
+    align-items: center;
+    padding: 2px 10px 2px 15px;
+
+    div.color {
+      width: 25px;
+      height: 25px;
+      border: 2px solid #777;
+      border-radius: 50%;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      margin-left: 10px;
+      color: #fff;
+    }
+  }
+
+  div.legend-item.continuous {
+    display: flex;
+    padding: 2px 10px 2px 16px;
+
+    div.gradients {
+      display: flex;
+      flex-direction: column;
+      height: 200px;
+      width: 30px;
+      border: 1px solid #999;
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 10px 0;
+      position: relative;
+
+      div.gradient {
+        width: 30px;
+        position: absolute;
+      }
+    }
+
+    div.ticks {
+      position: relative;
+      margin: 10px 0;
+      z-index: -1;
+      border-top: 1px solid transparent;
+      border-bottom: 1px solid transparent;
+
+      label.tick {
+        position: absolute;
+        display: block;
+        font-size: 12px;
+        line-height: 26px;
+        margin-bottom: -12px;
+        color: #fff;
+        width: 300px;
+      }
+      label.tick:before {
+        content: '';
+        display: block;
+        float: left;
+        width: 10px;
+        height: 13px;
+        border-bottom: 1px solid #999;
+        margin-right: 5px;
+        margin-left: -5px;
+      }
+    }
+  }
+}

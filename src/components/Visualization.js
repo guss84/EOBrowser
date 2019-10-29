@@ -3,19 +3,15 @@ import { connect } from 'react-redux';
 import moment from 'moment';
 import LayerDatasourcePicker from './LayerDatasourcePicker';
 import EffectsPanel from './EffectsPanel';
-import NotificationPanel from './NotificationPanel';
-import DownloadPanel from './DownloadPanel';
+import { NotificationPanel } from 'eo-components';
 import Store from '../store';
 import AddPin from './AddPin';
 import Rodal from 'rodal';
-import { isCustomPreset } from '../utils/utils';
-import { downloadCanvas } from '../utils/downloadZip';
-import { fetchDatesFromServiceIndex } from '../utils/ajax';
-import AnalyticalPanel from './AnalyticalPanel';
+import { isCustomPreset, getZoomLimitsForSelectedLayer } from '../utils/utils';
 import DayPicker from './DayPicker';
-
+import OneTimeNotification from './OneTimeNotification';
 import Timelapse from './Timelapse';
-import { DATASOURCES } from '../store/config';
+import { DATASOURCES, DATASET_MAP } from '../store/config';
 
 class Visualization extends Component {
   state = {
@@ -49,7 +45,7 @@ class Visualization extends Component {
   };
 
   getTileInfo() {
-    const { isActiveLayerVisible, selectedResult, presets, datasetMap } = Store.current;
+    const { isActiveLayerVisible, selectedResult, presets } = Store.current;
     const { datasource: datasourceName, lat, time, lng, zoom, userId } = selectedResult;
     let datasource = DATASOURCES.find(ds => ds.name === datasourceName);
     if (!datasource) {
@@ -57,12 +53,20 @@ class Visualization extends Component {
     }
     const dsSupportsZoomToTile = datasource.zoomToTile !== false;
     const dsSupportsEffects = datasource.effects !== false;
-    const isL1C = datasourceName.includes('L1C') && datasourceName.includes('Sentinel-2');
-    const l2a = isL1C ? 'Sentinel-2 L2A' : 'Sentinel-2 L1C';
-    const showNextPrev = !datasourceName.includes('Proba-V');
-    const addL1C = !isL1C || this.allowL2AorL1Ccheck(datasourceName, time);
-    const { showEffects, fetchingAlternativeDatasourceInfo } = this.state;
 
+    const showNextPrev = datasource.showPrevNextDate === undefined ? true : datasource.showPrevNextDate;
+
+    const siblingDatasource = datasource.siblingDatasourceId
+      ? DATASOURCES.find(ds => ds.id === datasource.siblingDatasourceId)
+      : undefined;
+
+    const isSiblingDataAvailable = datasource.siblingDatasourceId
+      ? this.checkSiblingAvailability(siblingDatasource, time)
+      : false;
+
+    const { showEffects, fetchingAlternativeDatasourceInfo } = this.state;
+    const minDate = selectedResult.minDate ? new Date(selectedResult.minDate) : undefined;
+    const maxDate = selectedResult.maxDate ? new Date(selectedResult.maxDate) : undefined;
     return (
       <div className="visualizationInfoPanel">
         <div className="tileActions">
@@ -71,8 +75,7 @@ class Visualization extends Component {
               <i className="fa fa-search" />
             </a>
           ) : null}
-          <AddPin onAddToPin={this.onAddToPin} />
-
+          <AddPin />
           <a onClick={() => Store.toggleActiveLayer(!isActiveLayerVisible)}>
             <i
               title={isActiveLayerVisible ? 'Hide layer' : 'Show layer'}
@@ -84,152 +87,133 @@ class Visualization extends Component {
               onClick={() => this.setState({ showEffects: !showEffects })}
               title={`Show ${showEffects ? 'visualization' : 'effects'}`}
             >
-              <i className={`fa fa-${showEffects ? 'paint-brush' : 'gear'}`} />
+              <i className={`fa fa-${showEffects ? 'paint-brush' : 'sliders'}`} />
             </a>
           )}
         </div>
-        {userId && [<b className="leaveMeAlone">Configuration:</b>, datasourceName, <br />]}
-        <b className="leaveMeAlone">Dataset:</b>{' '}
-        {userId
-          ? presets[datasourceName]
-            ? datasetMap[presets[datasourceName][0].dataset]
-            : datasourceName
-          : datasourceName}
-        {datasourceName.includes('Sentinel-2') &&
-          addL1C && (
+        {userId && (
+          <div>
+            <b className="leaveMeAlone">Configuration:</b> {datasourceName}
+          </div>
+        )}
+        <div>
+          <b className="leaveMeAlone">Dataset:</b>{' '}
+          {userId
+            ? presets[datasourceName]
+              ? DATASET_MAP[presets[datasourceName][0].dataset]
+              : datasourceName
+            : datasourceName}
+          {siblingDatasource && (
             <a
               style={{ marginLeft: 20 }}
-              title={`Search for ${l2a} tiles on this date`}
+              title={
+                isSiblingDataAvailable
+                  ? `Search for ${siblingDatasource.name} tiles on this date`
+                  : `Tiles for ${siblingDatasource.name} are not available on this date or in this area`
+              }
               className="btn"
-              onClick={() => this.checkforL2AorL1C(isL1C, time)}
+              onClick={() => this.getSiblingData(siblingDatasource, time)}
+              disabled={!isSiblingDataAvailable}
             >
               {fetchingAlternativeDatasourceInfo ? (
                 <i className="fa fa-spinner fa-spin fa-fw" />
-              ) : isL1C ? (
-                'Show L2A'
               ) : (
-                'Show L1C'
+                `Show ${siblingDatasource.shortName}`
               )}
             </a>
           )}
-        <br />
-        <b className="leaveMeAlone">Date:</b>
-        <DayPicker onSelect={e => this.updateDate(e)} selectedDay={time} showNextPrev={showNextPrev} />
+        </div>
+        <div>
+          <b className="leaveMeAlone">Date:</b>
+          <DayPicker
+            onSelect={e => this.updateDate(e)}
+            selectedDay={moment(time)}
+            showNextPrev={showNextPrev}
+            minDate={minDate}
+            maxDate={maxDate}
+          />
+        </div>
       </div>
     );
   }
 
-  allowL2AorL1Ccheck = (datasource, time) => {
-    const l2abounds = [
-      { lat: 66.79190947341796, lng: -24.082031250000004 },
-      { lat: 72.55449849665266, lng: 28.300781250000004 },
-      { lat: 68.52823492039879, lng: 45.52734375000001 },
-      { lat: 36.03133177633189, lng: 46.40625000000001 },
-      { lat: 35.31736632923788, lng: -11.77734375 },
-    ];
-    return (
-      datasource.includes('Sentinel-2 ') &&
-      moment(time).isAfter('2017-03-28') &&
-      Store.current.mapBounds &&
-      Store.current.mapBounds.intersects(l2abounds)
-    );
+  checkSiblingAvailability = (datasource, time) => {
+    const timeIsAfterMinDate = datasource.minDate ? moment(time).isAfter(datasource.minDate) : true;
+    const timeIsBeforeMaxDate = datasource.maxDate ? moment(time).isBefore(datasource.maxDate) : true;
+    return timeIsAfterMinDate && timeIsBeforeMaxDate;
   };
 
-  checkforL2AorL1C = (wasL1C, date) => {
-    const selectedS2DataSource = wasL1C ? 'Sentinel-2 L2A' : 'Sentinel-2 L1C';
-    this.setState({
-      fetchingAlternativeDatasourceInfo: true,
-    });
-    fetchDatesFromServiceIndex(selectedS2DataSource, { from: date, to: date })
-      .then(data => {
-        if (data.tiles.length > 0) {
+  getSiblingData = (datasource, time) => {
+    if (this.checkSiblingAvailability(datasource, time)) {
+      this.setState({ fetchingAlternativeDatasourceInfo: true });
+
+      const fromMoment = moment(time).startOf('day');
+      const toMoment = moment(time).endOf('day');
+
+      datasource
+        .getDates(fromMoment, toMoment)
+        .then(data => {
+          let fetchedTime = data.length > 0 ? data[0] : undefined;
+
+          // if datasource is limited to some area, check if map intersects datasource bounds
+          const isInBounds = datasource.limitedBounds
+            ? Store.current.mapBounds && Store.current.mapBounds.intersects(datasource.limitedBounds)
+            : true;
+
+          if (fetchedTime && isInBounds) {
+            this.setState({ fetchingAlternativeDatasourceInfo: false });
+            const result = {
+              activeLayer: datasource,
+              datasource: datasource.name,
+              time: fetchedTime,
+              preset: Store.current.presets[datasource.name][0].id,
+            };
+            Store.setSelectedResult(result);
+          } else {
+            this.setState({ fetchingAlternativeDatasourceInfo: false });
+            this.displayNoSiblingDateWarning(datasource, time);
+          }
+        })
+        .catch(e => {
           this.setState({ fetchingAlternativeDatasourceInfo: false });
-          const result = {
-            datasource: selectedS2DataSource,
-            time: moment(data.tiles[0].sensingTime)
-              .utc()
-              .format('YYYY-MM-DD'),
-            preset: Store.current.presets[selectedS2DataSource][0].id,
-          };
-          Store.setSelectedResult(result);
-        } else {
-          this.setState({
-            fetchingAlternativeDatasourceInfo: false,
-          });
-          this.displayL2AWarning(wasL1C, date);
-        }
-      })
-      .catch(e => {
-        this.setState({
-          fetchingAlternativeDatasourceInfo: false,
+          this.displayNoSiblingDateWarning(datasource, time);
+          console.error('Error getting dates for ' + datasource.name, e);
         });
-        this.displayL2AWarning(wasL1C, date);
-        console.error('Error getting dates for ' + selectedS2DataSource, e);
-      });
+    } else {
+      this.displayNoSiblingDateWarning(datasource, time);
+    }
   };
 
-  displayL2AWarning = (wasL1C, date) => {
-    const modalDialogId = 'l2a-warning';
+  displayNoSiblingDateWarning = (datasource, time) => {
+    const reason = this.checkSiblingAvailability(datasource, time)
+      ? 'No ' + datasource.name + ' tiles found on ' + time + ' for the current view.'
+      : datasource.minDate && datasource.maxDate
+        ? datasource.name + ' is available from ' + datasource.minDate + ' to ' + datasource.maxDate + '.'
+        : datasource.minDate && !datasource.maxDate
+          ? datasource.name + ' is available from ' + datasource.minDate + ' onward.'
+          : !datasource.minDate && datasource.maxDate
+            ? datasource.name + ' is available to ' + datasource.maxDate + '.'
+            : datasource.name + " isn't available.";
+
+    const modalDialogId = 'noSiblingDate-warning';
     Store.addModalDialog(
       modalDialogId,
       <Rodal
         animation="slideUp"
         visible={true}
         width={400}
-        height={120}
+        height={130}
         onClose={() => Store.removeModalDialog(modalDialogId)}
+        closeOnEsc={true}
       >
         <div>
           <h3>No tile found</h3>
-          No {wasL1C ? 'Sentinel-2 L2A' : 'Sentinel-2 L1C'} tiles found on {date} for the current view. Try
-          other Sentinel-2 tiles or use the search form to get other dates.
+          {reason}
+          <br />
+          Try other {datasource.name} tiles or use the search form to get other dates.
         </div>
       </Rodal>,
     );
-  };
-
-  downloadImage = () => {
-    const { isAnalytical, imageExt, showLogo } = Store.current;
-    if (isAnalytical) {
-      const modalDialogId = 'analytical-download';
-      Store.addModalDialog(
-        modalDialogId,
-        <Rodal
-          animation="slideUp"
-          customStyles={{
-            height: 'auto',
-            bottom: 'auto',
-            width: '500px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-          }}
-          visible
-          onClose={() => Store.removeModalDialog(modalDialogId)}
-        >
-          <AnalyticalPanel />
-        </Rodal>,
-      );
-    } else {
-      this.setState({ loading: true });
-      Store.generateImageLink();
-      const isPngJpg = ['jpg', 'png'].includes(imageExt);
-      if (isPngJpg && showLogo) {
-        downloadCanvas()
-          .then(res => {
-            this.setState({ loading: false });
-          })
-          .catch(err => {
-            this.setState({ loading: false });
-            console.error(err);
-          });
-      } else {
-        window.open(Store.current.imgWmsUrl, '_blank');
-      }
-    }
-  };
-
-  onAddToPin = () => {
-    Store.setTabIndex(3);
   };
 
   activateResult = preset => {
@@ -238,26 +222,26 @@ class Visualization extends Component {
   };
 
   render() {
-    const { showEffects, loading } = this.state;
+    const { showEffects } = this.state;
+
     const {
       channels,
       presets,
-      isAnalytical,
-      selectedResult: { datasource: datasourceName, preset, minZoom = 5, maxZoom = 16, userId },
+      selectedResult: { datasource: datasourceName, preset, userId },
       views,
       currView,
       zoom,
     } = this.props;
-
     const dsLayers = presets[datasourceName];
     let datasource = DATASOURCES.find(ds => ds.name === datasourceName);
     if (!datasource) {
       datasource = Store.current.instances.find(inst => inst.name === datasourceName);
     }
 
+    const { minZoom, maxZoom, allowOverZoomBy } = getZoomLimitsForSelectedLayer();
+    const maxZoomWithOverZoom = maxZoom + allowOverZoomBy;
     const dsChannels = channels[datasourceName];
     const mapZoom = Number(zoom);
-    const showNotification = mapZoom < minZoom || mapZoom > maxZoom;
     const supportsCustom = datasource.customLayer !== false;
     return (
       <div>
@@ -276,20 +260,33 @@ class Visualization extends Component {
           />
         )}
         {mapZoom < minZoom && <NotificationPanel msg="Zoom in to view data" type="info" />}
-        {mapZoom > maxZoom && <NotificationPanel msg="Zoom out to view data" type="info" />}
+        {mapZoom > maxZoomWithOverZoom && <NotificationPanel msg="Zoom out to view data" type="info" />}
 
-        {!showNotification && (
-          <DownloadPanel
-            ref={downloadPanel => {
-              this.downloadPanel = downloadPanel;
-            }}
-            loading={loading}
-            isAnalytical={isAnalytical}
-            onDownload={this.downloadImage}
-            showTimelapse={this.showTimelapse}
-            onChangeAnalytical={() => {
-              Store.setAnalytical(!isAnalytical);
-            }}
+        {moment.utc().isBefore(moment('2018-07-05')) && (
+          // feel free to remove this code after 2018-07-05:
+          <OneTimeNotification
+            confirmationId="user-knows-download"
+            msg={
+              <div>
+                <div
+                  style={{
+                    float: 'left',
+                  }}
+                >
+                  <i className="fa fa-exclamation-circle" />
+                </div>
+                <div
+                  style={{
+                    marginLeft: 30,
+                  }}
+                >
+                  <span>
+                    Looking for download or timelapse buttons? We've moved them to the map - look for &nbsp;<i className="fa fa-file-image-o" />&nbsp;
+                    and &nbsp;<i className="fa fa-film" />&nbsp; icons on your right.
+                  </span>
+                </div>
+              </div>
+            }
           />
         )}
       </div>

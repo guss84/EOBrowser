@@ -18,14 +18,14 @@
   margin-left: 0;
 }
 
-.wrapHolder {
+.modalTimelapse {
   box-shadow: 0 0 10px #000;
   position: fixed;
   left: 5%;
   top: calc(5vh);
   width: 90%;
   height: 90vh;
-  z-index: 100;
+  z-index: 1001;
   background: #385168;
   color: #fff;
 
@@ -251,22 +251,23 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-
+  width: calc(100% - 350px);
   .preview {
     display: flex;
-    flex: 1;
-    flex-direction: column;
-    justify-content: center;
+    flex-grow: 1;
+    flex-shrink: 1;
     align-items: center;
+    justify-content: center;
 
-    about img {
-      flex: 0 0 100%;
-      max-height: 99%;
-      max-width: 99%;
-      object-fit: contain;
+    .wrapper {
+      margin: auto;
+      width: calc(100vh - 200px);
+      max-width: 512px;
     }
     img {
+      height: calc(100vh - 200px);
       max-height: 512px;
+      max-width: 512px;
     }
   }
   .img-control {
@@ -360,5 +361,14 @@
   }
   &:before {
     transform: rotate(-45deg);
+  }
+}
+@media only screen and (max-width: 850px) {
+  .modalTimelapse {
+    position: fixed;
+    left: 5px;
+    top: calc(1vh);
+    width: 98%;
+    height: 98vh;
   }
 }
