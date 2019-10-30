@@ -29,4 +29,3 @@ Some features:
 * Then you need to modify `homepage` in ``package.json` to point to your deploy host URL.
 * The run `npm run build` and put whole folder to desired server.
 
-Server credentials can be found on [Sinergise Wiki page](https://wiki.sinergise.com/Maintenance/SentinelApps)
